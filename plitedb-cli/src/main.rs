@@ -1,4 +1,7 @@
-use plitedb::{error::PliteDbResult, query::{lexer::tokenize, parser::parse_tokens}};
+use plitedb::{
+    error::PliteDbResult,
+    query::{lexer::tokenize, parser::parse_tokens}
+};
 
 fn main() -> PliteDbResult<()> {
     let mut input = String::new();
