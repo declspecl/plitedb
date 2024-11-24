@@ -1,15 +1,15 @@
-pub mod cursor;
 pub mod error;
 pub mod token;
 
-use cursor::PeekingCursor;
+use super::cursor::PeekingCursor;
+
 use error::{LexerError, LexerResult};
 use token::Token;
 
 pub fn tokenize(haystack: &str) -> LexerResult<Vec<Token>> {
     let mut tokens = Vec::with_capacity(32);
 
-    let mut chars = PeekingCursor::new(haystack);
+    let mut chars = PeekingCursor::new(haystack.chars());
     while let Some(char) = chars.peek() {
         if char.is_whitespace() {
             chars.next();
@@ -17,12 +17,12 @@ pub fn tokenize(haystack: &str) -> LexerResult<Vec<Token>> {
         };
 
         if char.is_numeric() {
-            tokens.push(Token::Number(
+            tokens.push(Token::Number(String::from_iter(
                 chars.peek_and_take_while(|next| next.is_numeric() || *next == '.')
-            ));
+            )));
         }
         else if char.is_alphabetic() {
-            let string = chars.peek_and_take_while(|next| next.is_alphanumeric());
+            let string = String::from_iter(chars.peek_and_take_while(|next| next.is_alphanumeric()));
             let token = match string.len() {
                 3 => match &string[..] {
                     "GET" => Token::Get,
