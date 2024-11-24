@@ -7,5 +7,8 @@ edition = "2021"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [dependencies]
-libc = "0.2.164"
+libc = { version = "0.2.164", optional = true }
 thiserror = "2.0.3"
+
+[features]
+ffi = ["dep:libc"]

@@ -10,4 +10,20 @@ pub enum PliteDbError {
     QueryError(#[from] QueryError)
 }
 
+#[cfg(feature = "ffi")] 
+pub trait IntoFfiErrorCode {
+    fn to_error_code(&self) -> libc::intptr_t;
+}
+
+#[cfg(feature = "ffi")]
+impl IntoFfiErrorCode for PliteDbError {
+    fn to_error_code(&self) -> libc::intptr_t {
+        return match self {
+            Self::IoError(_) => 1,
+            Self::LexerError(lexer_error) => lexer_error.to_error_code(),
+            Self::QueryError(query_error) => query_error.to_error_code(),
+        };
+    }
+}
+
 pub type PliteDbResult<T> = Result<T, PliteDbError>;
