@@ -1,0 +1,25 @@
+statement := "PUT" <store_name> { ( <name> : <primary_expression> )+ }
+
+logical_expression := comparison_expression 
+                ( ( "AND" | "OR" ) comparison_expression )*
+
+comparison_expression := additive_expression 
+                    ( ( ">" | "<" | ">=" | "<=" | "=" | "!=" ) additive_expression )*
+
+additive_expression := multiplicative_expression 
+                    ( ( "+" | "-" ) multiplicative_expression )*
+
+multiplicative_expression := exponential_expression 
+                    ( ( "*" | "/" | "%" ) exponential_expression )*
+
+exponential_expression := unary_expression ( "^" unary_expression )*
+
+unary_expression := ( "-" | "NOT" )? primary_expression
+
+primary_expression :=
+                | NUMBER 
+                | STRING 
+                | BOOLEAN 
+                | IDENTIFIER 
+                | function_call
+                | "(" expression ")"

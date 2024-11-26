@@ -46,14 +46,14 @@ pub fn tokenize(haystack: &str) -> LexerResult<Vec<Token>> {
         else if *char == '\'' || *char == '"' {
             let quote = chars.next().unwrap();
             let string = String::from_iter(chars.peek_and_take_while(|next| *next != quote));
-            
+
             if let Some(closing_quote) = chars.next() {
                 if closing_quote != quote {
                     return Err(LexerError::UnexpectedCharacter(closing_quote));
                 }
             }
             else {
-                return Err(LexerError::UnexpectedEndOfInput)
+                return Err(LexerError::UnexpectedEndOfInput);
             }
 
             tokens.push(Token::String(string));
@@ -64,6 +64,8 @@ pub fn tokenize(haystack: &str) -> LexerResult<Vec<Token>> {
             match next {
                 '(' => tokens.push(Token::LeftParenthesis),
                 ')' => tokens.push(Token::RightParenthesis),
+                '{' => tokens.push(Token::LeftCurlyBrace),
+                '}' => tokens.push(Token::RightCurlyBrace),
                 ':' => tokens.push(Token::Colon),
                 ';' => tokens.push(Token::Semicolon),
                 ',' => tokens.push(Token::Comma),
@@ -103,19 +105,18 @@ pub fn tokenize(haystack: &str) -> LexerResult<Vec<Token>> {
     return Ok(tokens);
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn tokenize_put_statement() {
-        let input = "PUT users (userId: 'abcd123', name: 'Alice', age: 30, isRegistered: true)";
+        let input = "PUT users { userId: 'abcd123', name: 'Alice', age: 30, isRegistered: true }";
 
         let expected = vec![
             Token::Keyword(Keyword::Put),
             Token::Identifier(String::from("users")),
-            Token::LeftParenthesis,
+            Token::LeftCurlyBrace,
             Token::Identifier(String::from("userId")),
             Token::Colon,
             Token::String(String::from("abcd123")),
@@ -131,7 +132,7 @@ mod tests {
             Token::Identifier(String::from("isRegistered")),
             Token::Colon,
             Token::Keyword(Keyword::True),
-            Token::RightParenthesis
+            Token::RightCurlyBrace,
         ];
 
         assert_eq!(tokenize(input).unwrap(), expected);

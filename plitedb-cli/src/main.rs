@@ -1,6 +1,6 @@
 use plitedb::{
     error::PliteDbResult,
-    query::{lexer::tokenize, parser::parse_tokens}
+    query::{lexer::tokenize, parser::parse_query}
 };
 
 fn main() -> PliteDbResult<()> {
@@ -25,7 +25,7 @@ fn main() -> PliteDbResult<()> {
             }
         };
 
-        parse_tokens(tokens);
+        parse_query(tokens);
     }
 
     return Ok(());

@@ -2,6 +2,8 @@
 pub enum Token {
     LeftParenthesis,
     RightParenthesis,
+    LeftCurlyBrace,
+    RightCurlyBrace,
 
     Colon,
     Semicolon,
@@ -26,7 +28,7 @@ pub enum Token {
 
     Number(String),
     String(String),
-    Identifier(String),
+    Identifier(String)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
