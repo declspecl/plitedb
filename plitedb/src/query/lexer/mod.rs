@@ -96,6 +96,7 @@ pub fn tokenize(haystack: &str) -> LexerResult<Vec<Token>> {
                 '+' => tokens.push(Token::Plus),
                 '-' => tokens.push(Token::Minus),
                 '/' => tokens.push(Token::Slash),
+                '%' => tokens.push(Token::Percent),
                 '^' => tokens.push(Token::Caret),
                 _ => return Err(LexerError::UnexpectedCharacter(next))
             }

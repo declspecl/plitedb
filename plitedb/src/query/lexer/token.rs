@@ -22,6 +22,7 @@ pub enum Token {
     Plus,
     Minus,
     Slash,
+    Percent,
     Caret,
 
     Keyword(Keyword),

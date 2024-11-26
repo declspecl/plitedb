@@ -1,6 +1,6 @@
 use plitedb::{
     error::PliteDbResult,
-    query::{lexer::tokenize, parser::parse_query}
+    query::{lexer::tokenize, parser::parse}
 };
 
 fn main() -> PliteDbResult<()> {
@@ -25,7 +25,17 @@ fn main() -> PliteDbResult<()> {
             }
         };
 
-        parse_query(tokens);
+        println!("{:#?}", tokens);
+
+        let ast = match parse(tokens) {
+            Ok(ast) => ast,
+            Err(e) => {
+                eprintln!("{}", e);
+                continue;
+            }
+        };
+
+        println!("{:#?}", ast);
     }
 
     return Ok(());
