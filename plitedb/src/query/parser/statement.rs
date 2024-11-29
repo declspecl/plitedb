@@ -1,6 +1,6 @@
 use crate::query::{
     cursor::PeekingCursor,
-    lexer::token::{Keyword, Token}
+    lexer::token::{Keyword, Token, TokenType}
 };
 
 use super::{
@@ -11,9 +11,11 @@ use super::{
 
 pub fn parse_statement<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>) -> ParserResult<Statement> {
     let statement = match tokens.next() {
-        Some(Token::Keyword(Keyword::Get)) => parse_get_item(tokens),
-        Some(Token::Keyword(Keyword::Put)) => parse_put_item(tokens),
-        Some(token) => Err(ParserError::UnexpectedToken(token, "GET or PUT".to_string())),
+        Some(token) => match token.token_type {
+            TokenType::Keyword(Keyword::Get) => parse_get_item(tokens),
+            TokenType::Keyword(Keyword::Put) => parse_put_item(tokens),
+            _ => Err(ParserError::UnexpectedToken(token, "GET or PUT".to_string()))
+        },
         None => Err(ParserError::UnexpectedEndOfInput)
     };
 
@@ -56,10 +58,12 @@ fn parse_comparisons<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>) -
         comparisons.push(Comparison { name, operator, value });
 
         match tokens.peek() {
-            Some(Token::Comma) => {
-                tokens.next();
+            Some(token) => match token.token_type {
+                TokenType::Comma => {
+                    tokens.next();
+                },
+                _ => break
             },
-            Some(_) => break,
             None => return Err(ParserError::UnexpectedEndOfInput)
         }
     }
@@ -80,10 +84,12 @@ fn parse_assignments<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>) -
         assignments.push(Assignment { name, value });
 
         match tokens.peek() {
-            Some(Token::Comma) => {
-                tokens.next();
+            Some(token) => match token.token_type {
+                TokenType::Comma => {
+                    tokens.next();
+                },
+                _ => break
             },
-            Some(_) => break,
             None => return Err(ParserError::UnexpectedEndOfInput)
         }
     }
@@ -93,20 +99,25 @@ fn parse_assignments<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>) -
 
 fn parse_store_name<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>) -> ParserResult<String> {
     return match tokens.next() {
-        Some(Token::Identifier(name)) => Ok(name),
-        Some(token) => Err(ParserError::UnexpectedToken(token, "store name".to_string())),
+        Some(token) => match token.token_type {
+            TokenType::Identifier(name) => Ok(name),
+            TokenType::String(name) => Ok(name),
+            _ => Err(ParserError::UnexpectedToken(token, "store name".to_string()))
+        },
         None => Err(ParserError::UnexpectedEndOfInput)
     };
 }
 
 fn parse_attribute_name<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>) -> ParserResult<String> {
     return match tokens.next() {
-        Some(Token::Identifier(name)) => Ok(name),
-        Some(Token::String(name)) => Ok(name),
-        Some(token) => Err(ParserError::UnexpectedToken(
-            token,
-            "attribute name, as a string or identifier".to_string()
-        )),
+        Some(token) => match token.token_type {
+            TokenType::Identifier(name) => Ok(name),
+            TokenType::String(name) => Ok(name),
+            _ => Err(ParserError::UnexpectedToken(
+                token,
+                "attribute name, as a string or identifier".to_string()
+            ))
+        },
         None => Err(ParserError::UnexpectedEndOfInput)
     };
 }
@@ -123,32 +134,40 @@ fn parse_comparison_operator<I: Iterator<Item = Token>>(tokens: &mut PeekingCurs
 
 fn expect_colon<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>) -> ParserResult<()> {
     return match tokens.next() {
-        Some(Token::Colon) => Ok(()),
-        Some(token) => Err(ParserError::UnexpectedToken(token, ":".to_string())),
+        Some(token) => match token.token_type {
+            TokenType::Colon => Ok(()),
+            _ => Err(ParserError::UnexpectedToken(token, ":".to_string()))
+        },
         None => Err(ParserError::UnexpectedEndOfInput)
     };
 }
 
 fn expect_where<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>) -> ParserResult<()> {
     return match tokens.next() {
-        Some(Token::Keyword(Keyword::Where)) => Ok(()),
-        Some(token) => Err(ParserError::UnexpectedToken(token, "WHERE".to_string())),
+        Some(token) => match token.token_type {
+            TokenType::Keyword(Keyword::Where) => Ok(()),
+            _ => Err(ParserError::UnexpectedToken(token, "WHERE".to_string()))
+        },
         None => Err(ParserError::UnexpectedEndOfInput)
     };
 }
 
 fn expect_left_curly_brace<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>) -> ParserResult<()> {
     return match tokens.next() {
-        Some(Token::LeftCurlyBrace) => Ok(()),
-        Some(token) => Err(ParserError::UnexpectedToken(token, "{".to_string())),
+        Some(token) => match token.token_type {
+            TokenType::LeftCurlyBrace => Ok(()),
+            _ => Err(ParserError::UnexpectedToken(token, "{".to_string()))
+        },
         None => Err(ParserError::UnexpectedEndOfInput)
     };
 }
 
 fn expect_right_curly_brace<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>) -> ParserResult<()> {
     return match tokens.next() {
-        Some(Token::RightCurlyBrace) => Ok(()),
-        Some(token) => Err(ParserError::UnexpectedToken(token, "}".to_string())),
+        Some(token) => match token.token_type {
+            TokenType::RightCurlyBrace => Ok(()),
+            _ => Err(ParserError::UnexpectedToken(token, "}".to_string()))
+        },
         None => Err(ParserError::UnexpectedEndOfInput)
     };
 }

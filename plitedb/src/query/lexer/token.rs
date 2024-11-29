@@ -1,5 +1,7 @@
+use crate::query::cursor::Location;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Token {
+pub enum TokenType {
     LeftParenthesis,
     RightParenthesis,
     LeftCurlyBrace,
@@ -30,6 +32,21 @@ pub enum Token {
     Number(String),
     String(String),
     Identifier(String)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Token {
+    pub token_type: TokenType,
+    pub location: Location
+}
+
+impl Token {
+    pub fn new(
+        token_type: TokenType,
+        location: Location
+    ) -> Self {
+        return Token { token_type, location };
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

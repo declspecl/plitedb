@@ -25,7 +25,7 @@ fn main() -> PliteDbResult<()> {
             }
         };
 
-        println!("{:#?}", tokens);
+        println!("{:?}", tokens);
 
         let ast = match parse(tokens) {
             Ok(ast) => ast,

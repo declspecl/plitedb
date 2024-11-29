@@ -1,4 +1,4 @@
-use crate::query::lexer::token::Token;
+use crate::query::lexer::token::{Token, TokenType};
 
 use super::error::ParserError;
 
@@ -28,13 +28,13 @@ impl TryFrom<&Token> for ComparisonOperator {
     type Error = ParserError;
 
     fn try_from(value: &Token) -> Result<Self, Self::Error> {
-        return match value {
-            Token::GreaterThan => Ok(ComparisonOperator::GreaterThan),
-            Token::GreaterThanOrEqual => Ok(ComparisonOperator::GreaterThanOrEqual),
-            Token::LessThan => Ok(ComparisonOperator::LessThan),
-            Token::LessThanOrEqual => Ok(ComparisonOperator::LessThanOrEqual),
-            Token::Equal => Ok(ComparisonOperator::Equal),
-            Token::NotEqual => Ok(ComparisonOperator::NotEqual),
+        return match value.token_type {
+            TokenType::GreaterThan => Ok(ComparisonOperator::GreaterThan),
+            TokenType::GreaterThanOrEqual => Ok(ComparisonOperator::GreaterThanOrEqual),
+            TokenType::LessThan => Ok(ComparisonOperator::LessThan),
+            TokenType::LessThanOrEqual => Ok(ComparisonOperator::LessThanOrEqual),
+            TokenType::Equal => Ok(ComparisonOperator::Equal),
+            TokenType::NotEqual => Ok(ComparisonOperator::NotEqual),
             _ => Err(ParserError::InvalidComparisonOperator(value.to_owned()))
         };
     }
@@ -94,13 +94,13 @@ impl TryFrom<&Token> for BinaryOperator {
     type Error = ParserError;
 
     fn try_from(value: &Token) -> Result<Self, Self::Error> {
-        return match value {
-            Token::Plus => Ok(BinaryOperator::Add),
-            Token::Minus => Ok(BinaryOperator::Subtract),
-            Token::Asterisk => Ok(BinaryOperator::Multiply),
-            Token::Slash => Ok(BinaryOperator::Divide),
-            Token::Percent => Ok(BinaryOperator::Modulus),
-            Token::Caret => Ok(BinaryOperator::Exponentiate),
+        return match value.token_type {
+            TokenType::Plus => Ok(BinaryOperator::Add),
+            TokenType::Minus => Ok(BinaryOperator::Subtract),
+            TokenType::Asterisk => Ok(BinaryOperator::Multiply),
+            TokenType::Slash => Ok(BinaryOperator::Divide),
+            TokenType::Percent => Ok(BinaryOperator::Modulus),
+            TokenType::Caret => Ok(BinaryOperator::Exponentiate),
             _ => Err(ParserError::InvalidMathematicalOperator(value.to_owned()))
         };
     }
@@ -121,8 +121,8 @@ impl TryFrom<&Token> for UnaryOperator {
     type Error = ParserError;
 
     fn try_from(value: &Token) -> Result<Self, Self::Error> {
-        return match value {
-            Token::Minus => Ok(UnaryOperator::Negate),
+        return match value.token_type {
+            TokenType::Minus => Ok(UnaryOperator::Negate),
             _ => Err(ParserError::InvalidUnaryOperator(value.to_owned()))
         };
     }

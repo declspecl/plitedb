@@ -1,10 +1,22 @@
 pub mod error;
 pub mod token;
 
-use super::cursor::PeekingCursor;
+use super::cursor::{CursorTrackable, Location, PeekingCursor};
 
 use error::{LexerError, LexerResult};
-use token::{Keyword, Token};
+use token::{Keyword, Token, TokenType};
+
+impl CursorTrackable for char {
+    fn next_location(
+        &self,
+        location: Location
+    ) -> Location {
+        let column = if *self == '\n' { 0 } else { location.column + 1 };
+        let line = if *self == '\n' { location.line + 1 } else { location.line };
+
+        return Location { line, column };
+    }
+}
 
 pub fn tokenize(haystack: &str) -> LexerResult<Vec<Token>> {
     let mut tokens = Vec::with_capacity(32);
@@ -17,31 +29,34 @@ pub fn tokenize(haystack: &str) -> LexerResult<Vec<Token>> {
         };
 
         if char.is_numeric() {
-            tokens.push(Token::Number(String::from_iter(
-                chars.peek_and_take_while(|next| next.is_numeric() || *next == '.')
-            )));
+            tokens.push(Token::new(
+                TokenType::Number(String::from_iter(
+                    chars.peek_and_take_while(|next| next.is_numeric() || *next == '.')
+                )),
+                chars.loc()
+            ));
         }
         else if char.is_alphabetic() || *char == '_' {
             let string = String::from_iter(chars.peek_and_take_while(|next| next.is_alphanumeric() || *next == '_'));
-            let token = match string.len() {
+            let token_type = match string.len() {
                 3 => match &string[..] {
-                    "GET" => Token::Keyword(Keyword::Get),
-                    "PUT" => Token::Keyword(Keyword::Put),
-                    _ => Token::Identifier(string)
+                    "GET" => TokenType::Keyword(Keyword::Get),
+                    "PUT" => TokenType::Keyword(Keyword::Put),
+                    _ => TokenType::Identifier(string)
                 },
                 4 => match &string[..] {
-                    "true" => Token::Keyword(Keyword::True),
-                    "false" => Token::Keyword(Keyword::False),
-                    _ => Token::Identifier(string)
+                    "true" => TokenType::Keyword(Keyword::True),
+                    "false" => TokenType::Keyword(Keyword::False),
+                    _ => TokenType::Identifier(string)
                 },
                 5 => match &string[..] {
-                    "WHERE" => Token::Keyword(Keyword::Where),
-                    _ => Token::Identifier(string)
+                    "WHERE" => TokenType::Keyword(Keyword::Where),
+                    _ => TokenType::Identifier(string)
                 },
-                _ => Token::Identifier(string)
+                _ => TokenType::Identifier(string)
             };
 
-            tokens.push(token);
+            tokens.push(Token::new(token_type, chars.loc()));
         }
         else if *char == '\'' || *char == '"' {
             let quote = chars.next().unwrap();
@@ -56,50 +71,52 @@ pub fn tokenize(haystack: &str) -> LexerResult<Vec<Token>> {
                 return Err(LexerError::UnexpectedEndOfInput);
             }
 
-            tokens.push(Token::String(string));
+            tokens.push(Token::new(TokenType::String(string), chars.loc()));
         }
         else {
             let next = chars.next().unwrap();
 
-            match next {
-                '(' => tokens.push(Token::LeftParenthesis),
-                ')' => tokens.push(Token::RightParenthesis),
-                '{' => tokens.push(Token::LeftCurlyBrace),
-                '}' => tokens.push(Token::RightCurlyBrace),
-                ':' => tokens.push(Token::Colon),
-                ';' => tokens.push(Token::Semicolon),
-                ',' => tokens.push(Token::Comma),
-                '.' => tokens.push(Token::Period),
+            let token_type = match next {
+                '(' => TokenType::LeftParenthesis,
+                ')' => TokenType::RightParenthesis,
+                '{' => TokenType::LeftCurlyBrace,
+                '}' => TokenType::RightCurlyBrace,
+                ':' => TokenType::Colon,
+                ';' => TokenType::Semicolon,
+                ',' => TokenType::Comma,
+                '.' => TokenType::Period,
                 '>' => match chars.peek() {
                     Some('=') => {
                         chars.next();
-                        tokens.push(Token::GreaterThanOrEqual);
+                        TokenType::GreaterThanOrEqual
                     },
-                    _ => tokens.push(Token::GreaterThan)
+                    _ => TokenType::GreaterThan
                 },
                 '<' => match chars.peek() {
                     Some('=') => {
                         chars.next();
-                        tokens.push(Token::LessThanOrEqual);
+                        TokenType::LessThanOrEqual
                     },
-                    _ => tokens.push(Token::LessThan)
+                    _ => TokenType::LessThan
                 },
-                '=' => tokens.push(Token::Equal),
+                '=' => TokenType::Equal,
                 '!' => match chars.peek() {
                     Some('=') => {
                         chars.next();
-                        tokens.push(Token::NotEqual);
+                        TokenType::NotEqual
                     },
                     _ => return Err(LexerError::UnexpectedCharacter(next))
                 },
-                '*' => tokens.push(Token::Asterisk),
-                '+' => tokens.push(Token::Plus),
-                '-' => tokens.push(Token::Minus),
-                '/' => tokens.push(Token::Slash),
-                '%' => tokens.push(Token::Percent),
-                '^' => tokens.push(Token::Caret),
+                '*' => TokenType::Asterisk,
+                '+' => TokenType::Plus,
+                '-' => TokenType::Minus,
+                '/' => TokenType::Slash,
+                '%' => TokenType::Percent,
+                '^' => TokenType::Caret,
                 _ => return Err(LexerError::UnexpectedCharacter(next))
-            }
+            };
+
+            tokens.push(Token::new(token_type, chars.loc()));
         }
     }
 
@@ -108,33 +125,41 @@ pub fn tokenize(haystack: &str) -> LexerResult<Vec<Token>> {
 
 #[cfg(test)]
 mod tests {
+    use crate::query::cursor::Location;
+
     use super::*;
 
     #[test]
     fn tokenize_put_statement() {
         let input = "PUT users { userId: 'abcd123', name: 'Alice', age: 30, isRegistered: true }";
 
-        let expected = vec![
-            Token::Keyword(Keyword::Put),
-            Token::Identifier(String::from("users")),
-            Token::LeftCurlyBrace,
-            Token::Identifier(String::from("userId")),
-            Token::Colon,
-            Token::String(String::from("abcd123")),
-            Token::Comma,
-            Token::Identifier(String::from("name")),
-            Token::Colon,
-            Token::String(String::from("Alice")),
-            Token::Comma,
-            Token::Identifier(String::from("age")),
-            Token::Colon,
-            Token::Number(String::from("30")),
-            Token::Comma,
-            Token::Identifier(String::from("isRegistered")),
-            Token::Colon,
-            Token::Keyword(Keyword::True),
-            Token::RightCurlyBrace,
+        let expected_types = vec![
+            TokenType::Keyword(Keyword::Put),
+            TokenType::Identifier(String::from("users")),
+            TokenType::LeftCurlyBrace,
+            TokenType::Identifier(String::from("userId")),
+            TokenType::Colon,
+            TokenType::String(String::from("abcd123")),
+            TokenType::Comma,
+            TokenType::Identifier(String::from("name")),
+            TokenType::Colon,
+            TokenType::String(String::from("Alice")),
+            TokenType::Comma,
+            TokenType::Identifier(String::from("age")),
+            TokenType::Colon,
+            TokenType::Number(String::from("30")),
+            TokenType::Comma,
+            TokenType::Identifier(String::from("isRegistered")),
+            TokenType::Colon,
+            TokenType::Keyword(Keyword::True),
+            TokenType::RightCurlyBrace,
         ];
+
+        let expected: Vec<Token> = expected_types
+            .iter()
+            .zip(1..)
+            .map(|(token_type, column)| Token::new(token_type.clone(), Location { line: 1, column }))
+            .collect();
 
         assert_eq!(tokenize(input).unwrap(), expected);
     }
