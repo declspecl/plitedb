@@ -1,6 +1,13 @@
-use crate::query::{cursor::PeekingCursor, lexer::token::{Keyword, Token}};
+use crate::query::{
+    cursor::PeekingCursor,
+    lexer::token::{Keyword, Token}
+};
 
-use super::{ast::{Assignment, Comparison, Expression, Statement}, error::{ParserError, ParserResult}, expression::parse_expression};
+use super::{
+    ast::{Assignment, Comparison, Expression, Statement},
+    error::{ParserError, ParserResult},
+    expression::parse_expression
+};
 
 pub fn parse_statement<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>) -> ParserResult<Statement> {
     let statement = match tokens.next() {
@@ -58,8 +65,10 @@ fn parse_conditions<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>) ->
         }
 
         match tokens.peek() {
-            Some(Token::Comma) => { tokens.next(); },
-            Some(token) => break,
+            Some(Token::Comma) => {
+                tokens.next();
+            },
+            Some(_) => break,
             None => return Err(ParserError::UnexpectedEndOfInput)
         }
     }
@@ -113,8 +122,10 @@ fn parse_assignments<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>) -
         assignments.push(Assignment { name, value });
 
         match tokens.peek() {
-            Some(Token::Comma) => { tokens.next(); },
-            Some(token) => break,
+            Some(Token::Comma) => {
+                tokens.next();
+            },
+            Some(_) => break,
             None => return Err(ParserError::UnexpectedEndOfInput)
         }
     }

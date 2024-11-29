@@ -1,10 +1,13 @@
 use crate::query::cursor::PeekingCursor;
 use crate::query::lexer::token::{Keyword, Token};
 
-use super::ast::{BinaryOperator, Comparison, Expression, HasPrecedence, MathematicalOperation, MathematicalOperator, UnaryOperation, UnaryOperator, Value};
+use super::ast::{BinaryOperator, Comparison, Expression, HasPrecedence, MathematicalOperation, UnaryOperation, UnaryOperator, Value};
 use super::error::{ParserError, ParserResult};
 
-pub fn parse_expression<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>, precedence: u8) -> ParserResult<Expression> {
+pub fn parse_expression<I: Iterator<Item = Token>>(
+    tokens: &mut PeekingCursor<I>,
+    precedence: u8
+) -> ParserResult<Expression> {
     let mut left = parse_primary(tokens)?;
 
     loop {
@@ -68,7 +71,11 @@ fn parse_primary<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>) -> Pa
     };
 }
 
-fn parse_binary_operation<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>, left: Expression, operator: BinaryOperator) -> ParserResult<Expression> {
+fn parse_binary_operation<I: Iterator<Item = Token>>(
+    tokens: &mut PeekingCursor<I>,
+    left: Expression,
+    operator: BinaryOperator
+) -> ParserResult<Expression> {
     let precedence = operator.precedence();
     let right = parse_expression(tokens, precedence)?;
 
@@ -100,21 +107,24 @@ mod tests {
             Token::Plus,
             Token::Number("2".to_string()),
             Token::Plus,
-            Token::Number("3".to_string())
+            Token::Number("3".to_string()),
         ];
 
         let mut cursor = PeekingCursor::new(tokens.into_iter());
         let ast = parse_expression(&mut cursor, 0).unwrap();
 
-        assert_eq!(ast, Expression::BinaryOperation(MathematicalOperation {
-            left: Box::new(Expression::BinaryOperation(MathematicalOperation {
-                left: Box::new(Expression::Literal(Value::Integer(1))),
+        assert_eq!(
+            ast,
+            Expression::BinaryOperation(MathematicalOperation {
+                left: Box::new(Expression::BinaryOperation(MathematicalOperation {
+                    left: Box::new(Expression::Literal(Value::Integer(1))),
+                    operator: MathematicalOperator::Add,
+                    right: Box::new(Expression::Literal(Value::Integer(2)))
+                })),
                 operator: MathematicalOperator::Add,
-                right: Box::new(Expression::Literal(Value::Integer(2)))
-            })),
-            operator: MathematicalOperator::Add,
-            right: Box::new(Expression::Literal(Value::Integer(3)))
-        }));
+                right: Box::new(Expression::Literal(Value::Integer(3)))
+            })
+        );
     }
 
     #[test]
@@ -127,21 +137,24 @@ mod tests {
             Token::Number("2".to_string()),
             Token::Plus,
             Token::Number("3".to_string()),
-            Token::RightParenthesis
+            Token::RightParenthesis,
         ];
 
         let mut cursor = PeekingCursor::new(tokens.into_iter());
         let ast = parse_expression(&mut cursor, 0).unwrap();
 
-        assert_eq!(ast, Expression::BinaryOperation(MathematicalOperation {
-            left: Box::new(Expression::Literal(Value::Integer(1))),
-            operator: MathematicalOperator::Multiply,
-            right: Box::new(Expression::BinaryOperation(MathematicalOperation {
-                left: Box::new(Expression::Literal(Value::Integer(2))),
-                operator: MathematicalOperator::Add,
-                right: Box::new(Expression::Literal(Value::Integer(3)))
-            }))
-        }));
+        assert_eq!(
+            ast,
+            Expression::BinaryOperation(MathematicalOperation {
+                left: Box::new(Expression::Literal(Value::Integer(1))),
+                operator: MathematicalOperator::Multiply,
+                right: Box::new(Expression::BinaryOperation(MathematicalOperation {
+                    left: Box::new(Expression::Literal(Value::Integer(2))),
+                    operator: MathematicalOperator::Add,
+                    right: Box::new(Expression::Literal(Value::Integer(3)))
+                }))
+            })
+        );
     }
 
     #[test]
@@ -158,31 +171,34 @@ mod tests {
             Token::Asterisk,
             Token::Minus,
             Token::Number("5".to_string()),
-            Token::RightParenthesis
+            Token::RightParenthesis,
         ];
 
         let mut cursor = PeekingCursor::new(tokens.into_iter());
         let ast = parse_expression(&mut cursor, 0).unwrap();
 
-        assert_eq!(ast, Expression::BinaryOperation(MathematicalOperation {
-            left: Box::new(Expression::Literal(Value::Integer(1))),
-            operator: MathematicalOperator::Add,
-            right: Box::new(Expression::BinaryOperation(MathematicalOperation {
-                left: Box::new(Expression::UnaryOperation(UnaryOperation {
-                    operator: UnaryOperator::Negate,
-                    operand: Box::new(Expression::Literal(Value::Integer(1)))
-                })),
-                operator: MathematicalOperator::Subtract,
+        assert_eq!(
+            ast,
+            Expression::BinaryOperation(MathematicalOperation {
+                left: Box::new(Expression::Literal(Value::Integer(1))),
+                operator: MathematicalOperator::Add,
                 right: Box::new(Expression::BinaryOperation(MathematicalOperation {
-                    left: Box::new(Expression::Literal(Value::Integer(1))),
-                    operator: MathematicalOperator::Multiply,
-                    right: Box::new(Expression::UnaryOperation(UnaryOperation {
+                    left: Box::new(Expression::UnaryOperation(UnaryOperation {
                         operator: UnaryOperator::Negate,
-                        operand: Box::new(Expression::Literal(Value::Integer(5)))
+                        operand: Box::new(Expression::Literal(Value::Integer(1)))
+                    })),
+                    operator: MathematicalOperator::Subtract,
+                    right: Box::new(Expression::BinaryOperation(MathematicalOperation {
+                        left: Box::new(Expression::Literal(Value::Integer(1))),
+                        operator: MathematicalOperator::Multiply,
+                        right: Box::new(Expression::UnaryOperation(UnaryOperation {
+                            operator: UnaryOperator::Negate,
+                            operand: Box::new(Expression::Literal(Value::Integer(5)))
+                        }))
                     }))
                 }))
-            }))
-        }));
+            })
+        );
     }
 
     #[test]
@@ -211,40 +227,43 @@ mod tests {
             Token::RightParenthesis,
             Token::Slash,
             Token::Number("2".to_string()),
-            Token::RightParenthesis
+            Token::RightParenthesis,
         ];
 
         let mut cursor = PeekingCursor::new(tokens.into_iter());
         let ast = parse_expression(&mut cursor, 0).unwrap();
 
-        assert_eq!(ast, Expression::BinaryOperation(MathematicalOperation {
-            left: Box::new(Expression::BinaryOperation(MathematicalOperation {
+        assert_eq!(
+            ast,
+            Expression::BinaryOperation(MathematicalOperation {
                 left: Box::new(Expression::BinaryOperation(MathematicalOperation {
-                    left: Box::new(Expression::Literal(Value::Integer(5))),
-                    operator: MathematicalOperator::Subtract,
-                    right: Box::new(Expression::Literal(Value::Integer(2)))
-                })),
-                operator: MathematicalOperator::Divide,
-                right: Box::new(Expression::Literal(Value::Integer(2)))
-            })),
-            operator: MathematicalOperator::Add,
-            right: Box::new(Expression::BinaryOperation(MathematicalOperation {
-                left: Box::new(Expression::Literal(Value::Integer(2))),
-                operator: MathematicalOperator::Add,
-                right: Box::new(Expression::BinaryOperation(MathematicalOperation {
                     left: Box::new(Expression::BinaryOperation(MathematicalOperation {
-                        left: Box::new(Expression::BinaryOperation(MathematicalOperation {
-                            left: Box::new(Expression::Literal(Value::Integer(9))),
-                            operator: MathematicalOperator::Multiply,
-                            right: Box::new(Expression::Literal(Value::Integer(4)))
-                        })),
+                        left: Box::new(Expression::Literal(Value::Integer(5))),
                         operator: MathematicalOperator::Subtract,
                         right: Box::new(Expression::Literal(Value::Integer(2)))
                     })),
                     operator: MathematicalOperator::Divide,
                     right: Box::new(Expression::Literal(Value::Integer(2)))
+                })),
+                operator: MathematicalOperator::Add,
+                right: Box::new(Expression::BinaryOperation(MathematicalOperation {
+                    left: Box::new(Expression::Literal(Value::Integer(2))),
+                    operator: MathematicalOperator::Add,
+                    right: Box::new(Expression::BinaryOperation(MathematicalOperation {
+                        left: Box::new(Expression::BinaryOperation(MathematicalOperation {
+                            left: Box::new(Expression::BinaryOperation(MathematicalOperation {
+                                left: Box::new(Expression::Literal(Value::Integer(9))),
+                                operator: MathematicalOperator::Multiply,
+                                right: Box::new(Expression::Literal(Value::Integer(4)))
+                            })),
+                            operator: MathematicalOperator::Subtract,
+                            right: Box::new(Expression::Literal(Value::Integer(2)))
+                        })),
+                        operator: MathematicalOperator::Divide,
+                        right: Box::new(Expression::Literal(Value::Integer(2)))
+                    }))
                 }))
-            }))
-        }));
+            })
+        );
     }
 }

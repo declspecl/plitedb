@@ -9,7 +9,7 @@ pub enum PliteDbError {
     #[error("Query error: {0}")]
     QueryError(#[from] QueryError),
     #[error("Parser error: {0}")]
-    ParserError(#[from] ParserError),
+    ParserError(#[from] ParserError)
 }
 
 pub type PliteDbResult<T> = Result<T, PliteDbError>;
