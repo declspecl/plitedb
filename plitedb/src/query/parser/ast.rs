@@ -113,7 +113,7 @@ impl TryFrom<&Token> for MathematicalOperator {
             Token::Slash => Ok(MathematicalOperator::Divide),
             Token::Percent => Ok(MathematicalOperator::Modulus),
             Token::Caret => Ok(MathematicalOperator::Exponentiate),
-            _ => Err(ParserError::UnexpectedEndOfInput)
+            _ => Err(ParserError::InvalidOperatorValue(value.to_owned()))
         };
     }
 }
@@ -137,12 +137,14 @@ impl TryFrom<&Token> for BinaryOperator {
     type Error = ParserError;
 
     fn try_from(value: &Token) -> Result<Self, Self::Error> {
-        return match MathematicalOperator::try_from(value) {
-            Ok(operator) => Ok(BinaryOperator::Mathematical(operator)),
-            Err(_) => match ComparisonOperator::try_from(value) {
-                Ok(operator) => Ok(BinaryOperator::Comparison(operator)),
-                Err(_) => Err(ParserError::UnexpectedEndOfInput)
-            }
+        return if let Ok(operator) = ComparisonOperator::try_from(value) {
+            Ok(BinaryOperator::Comparison(operator))
+        }
+        else if let Ok(operator) = MathematicalOperator::try_from(value) {
+            Ok(BinaryOperator::Mathematical(operator))
+        }
+        else {
+            Err(ParserError::InvalidOperatorValue(value.to_owned()))
         };
     }
 }

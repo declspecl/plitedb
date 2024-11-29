@@ -15,7 +15,9 @@ pub enum ParserError {
     #[error("Missing colon")]
     MissingColon,
     #[error("Invalid value")]
-    InvalidValue
+    InvalidValue,
+    #[error("Invalid operator token '{:?}'", .0)]
+    InvalidOperatorValue(Token)
 }
 
 pub type ParserResult<T> = Result<T, ParserError>;
