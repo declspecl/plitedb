@@ -84,11 +84,11 @@ pub fn tokenize(haystack: &str) -> LexerResult<Vec<Token>> {
                     },
                     _ => tokens.push(Token::LessThan)
                 },
-                '=' => tokens.push(Token::Equals),
+                '=' => tokens.push(Token::Equal),
                 '!' => match chars.peek() {
                     Some('=') => {
                         chars.next();
-                        tokens.push(Token::NotEquals);
+                        tokens.push(Token::NotEqual);
                     },
                     _ => return Err(LexerError::UnexpectedCharacter(next))
                 },

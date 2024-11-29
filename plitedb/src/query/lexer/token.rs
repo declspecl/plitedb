@@ -15,8 +15,8 @@ pub enum Token {
     GreaterThanOrEqual,
     LessThan,
     LessThanOrEqual,
-    Equals,
-    NotEquals,
+    Equal,
+    NotEqual,
 
     Asterisk,
     Plus,

@@ -1,7 +1,7 @@
 use crate::query::cursor::PeekingCursor;
 use crate::query::lexer::token::{Keyword, Token};
 
-use super::ast::{BinaryOperator, Comparison, Expression, HasPrecedence, MathematicalOperation, UnaryOperation, UnaryOperator, Value};
+use super::ast::{BinaryOperation, BinaryOperator, Expression, UnaryOperation, UnaryOperator, Value};
 use super::error::{ParserError, ParserResult};
 
 pub fn parse_expression<I: Iterator<Item = Token>>(
@@ -45,7 +45,7 @@ fn parse_primary<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>) -> Pa
                 Ok(Expression::Literal(Value::Float(float_value)))
             }
             else {
-                Err(ParserError::InvalidValue)
+                Err(ParserError::InvalidNumericalValue(number))
             }
         },
         Token::Identifier(value) => Ok(Expression::Identifier(value)),
@@ -54,7 +54,8 @@ fn parse_primary<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>) -> Pa
 
             match tokens.next() {
                 Some(Token::RightParenthesis) => (),
-                _ => return Err(ParserError::MissingParenthesis)
+                Some(token) => return Err(ParserError::UnexpectedToken(token, ")".to_string())),
+                None => return Err(ParserError::UnexpectedEndOfInput)
             }
 
             Ok(expression)
@@ -67,7 +68,7 @@ fn parse_primary<I: Iterator<Item = Token>>(tokens: &mut PeekingCursor<I>) -> Pa
                 operand: Box::new(expression)
             }))
         },
-        _ => Err(ParserError::UnexpectedToken(token))
+        _ => Err(ParserError::UnexpectedToken(token, "value, keyword, or identifier".to_string()))
     };
 }
 
@@ -79,24 +80,15 @@ fn parse_binary_operation<I: Iterator<Item = Token>>(
     let precedence = operator.precedence();
     let right = parse_expression(tokens, precedence)?;
 
-    return match operator {
-        BinaryOperator::Mathematical(operator) => Ok(Expression::BinaryOperation(MathematicalOperation {
-            left: Box::new(left),
-            operator,
-            right: Box::new(right)
-        })),
-        BinaryOperator::Comparison(operator) => Ok(Expression::Comparison(Comparison {
-            left: Box::new(left),
-            operator,
-            right: Box::new(right)
-        }))
-    };
+    return Ok(Expression::BinaryOperation(BinaryOperation {
+        left: Box::new(left),
+        operator,
+        right: Box::new(right)
+    }));
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::query::parser::ast::{MathematicalOperation, MathematicalOperator};
-
     use super::*;
 
     #[test]
@@ -115,13 +107,13 @@ mod tests {
 
         assert_eq!(
             ast,
-            Expression::BinaryOperation(MathematicalOperation {
-                left: Box::new(Expression::BinaryOperation(MathematicalOperation {
+            Expression::BinaryOperation(BinaryOperation {
+                left: Box::new(Expression::BinaryOperation(BinaryOperation {
                     left: Box::new(Expression::Literal(Value::Integer(1))),
-                    operator: MathematicalOperator::Add,
+                    operator: BinaryOperator::Add,
                     right: Box::new(Expression::Literal(Value::Integer(2)))
                 })),
-                operator: MathematicalOperator::Add,
+                operator: BinaryOperator::Add,
                 right: Box::new(Expression::Literal(Value::Integer(3)))
             })
         );
@@ -145,12 +137,12 @@ mod tests {
 
         assert_eq!(
             ast,
-            Expression::BinaryOperation(MathematicalOperation {
+            Expression::BinaryOperation(BinaryOperation {
                 left: Box::new(Expression::Literal(Value::Integer(1))),
-                operator: MathematicalOperator::Multiply,
-                right: Box::new(Expression::BinaryOperation(MathematicalOperation {
+                operator: BinaryOperator::Multiply,
+                right: Box::new(Expression::BinaryOperation(BinaryOperation {
                     left: Box::new(Expression::Literal(Value::Integer(2))),
-                    operator: MathematicalOperator::Add,
+                    operator: BinaryOperator::Add,
                     right: Box::new(Expression::Literal(Value::Integer(3)))
                 }))
             })
@@ -179,18 +171,18 @@ mod tests {
 
         assert_eq!(
             ast,
-            Expression::BinaryOperation(MathematicalOperation {
+            Expression::BinaryOperation(BinaryOperation {
                 left: Box::new(Expression::Literal(Value::Integer(1))),
-                operator: MathematicalOperator::Add,
-                right: Box::new(Expression::BinaryOperation(MathematicalOperation {
+                operator: BinaryOperator::Add,
+                right: Box::new(Expression::BinaryOperation(BinaryOperation {
                     left: Box::new(Expression::UnaryOperation(UnaryOperation {
                         operator: UnaryOperator::Negate,
                         operand: Box::new(Expression::Literal(Value::Integer(1)))
                     })),
-                    operator: MathematicalOperator::Subtract,
-                    right: Box::new(Expression::BinaryOperation(MathematicalOperation {
+                    operator: BinaryOperator::Subtract,
+                    right: Box::new(Expression::BinaryOperation(BinaryOperation {
                         left: Box::new(Expression::Literal(Value::Integer(1))),
-                        operator: MathematicalOperator::Multiply,
+                        operator: BinaryOperator::Multiply,
                         right: Box::new(Expression::UnaryOperation(UnaryOperation {
                             operator: UnaryOperator::Negate,
                             operand: Box::new(Expression::Literal(Value::Integer(5)))
@@ -235,31 +227,31 @@ mod tests {
 
         assert_eq!(
             ast,
-            Expression::BinaryOperation(MathematicalOperation {
-                left: Box::new(Expression::BinaryOperation(MathematicalOperation {
-                    left: Box::new(Expression::BinaryOperation(MathematicalOperation {
+            Expression::BinaryOperation(BinaryOperation {
+                left: Box::new(Expression::BinaryOperation(BinaryOperation {
+                    left: Box::new(Expression::BinaryOperation(BinaryOperation {
                         left: Box::new(Expression::Literal(Value::Integer(5))),
-                        operator: MathematicalOperator::Subtract,
+                        operator: BinaryOperator::Subtract,
                         right: Box::new(Expression::Literal(Value::Integer(2)))
                     })),
-                    operator: MathematicalOperator::Divide,
+                    operator: BinaryOperator::Divide,
                     right: Box::new(Expression::Literal(Value::Integer(2)))
                 })),
-                operator: MathematicalOperator::Add,
-                right: Box::new(Expression::BinaryOperation(MathematicalOperation {
+                operator: BinaryOperator::Add,
+                right: Box::new(Expression::BinaryOperation(BinaryOperation {
                     left: Box::new(Expression::Literal(Value::Integer(2))),
-                    operator: MathematicalOperator::Add,
-                    right: Box::new(Expression::BinaryOperation(MathematicalOperation {
-                        left: Box::new(Expression::BinaryOperation(MathematicalOperation {
-                            left: Box::new(Expression::BinaryOperation(MathematicalOperation {
+                    operator: BinaryOperator::Add,
+                    right: Box::new(Expression::BinaryOperation(BinaryOperation {
+                        left: Box::new(Expression::BinaryOperation(BinaryOperation {
+                            left: Box::new(Expression::BinaryOperation(BinaryOperation {
                                 left: Box::new(Expression::Literal(Value::Integer(9))),
-                                operator: MathematicalOperator::Multiply,
+                                operator: BinaryOperator::Multiply,
                                 right: Box::new(Expression::Literal(Value::Integer(4)))
                             })),
-                            operator: MathematicalOperator::Subtract,
+                            operator: BinaryOperator::Subtract,
                             right: Box::new(Expression::Literal(Value::Integer(2)))
                         })),
-                        operator: MathematicalOperator::Divide,
+                        operator: BinaryOperator::Divide,
                         right: Box::new(Expression::Literal(Value::Integer(2)))
                     }))
                 }))
